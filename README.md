@@ -6,6 +6,13 @@ A ClojureScript library for showing sortable/filterable tables.
 
 Check the example by cloning and running `lein figwheel`.
 
+See the live demo: https://mjg123.github.io/reagent-data-table/resources/public/index.html
+
+See the code:
+
+- Live demo: https://github.com/mjg123/reagent-data-table/blob/master/dev/reagent_data_table/dev.cljs  (shows how to use this lib)
+- The code: https://github.com/mjg123/reagent-data-table/blob/master/src/reagent_data_table/core.cljs (_is_ this lib)
+
 ## License
 
 Copyright © 2016 FIXME

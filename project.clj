@@ -25,6 +25,12 @@
                                            :source-map-timestamp true
                                            :preloads [devtools.preload]}}
 
+                       :demo    {:source-paths ["src" "dev"]
+                                :compiler {:output-to "resources/public/js/compiled/reagent_data_table.js"
+                                           :main reagent-data-table.dev
+                                           :optimizations :advanced
+                                           :pretty-print false}}
+
                        :min    {:source-paths ["src"]
                                 :compiler {:output-to "resources/public/js/compiled/reagent_data_table.js"
                                            :main reagent-data-table.core

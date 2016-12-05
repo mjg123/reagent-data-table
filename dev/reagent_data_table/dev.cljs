@@ -40,6 +40,7 @@
 
                     :sortable-columns [:id :name :age]
                     :sort-columns [[:age true]]
+                    :sort-image-base "img/"
 
                     :table-state-change-fn #(.log js/console %)}]]]
 

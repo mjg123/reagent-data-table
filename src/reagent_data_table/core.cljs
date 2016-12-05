@@ -15,12 +15,15 @@
 
   "Generates the image component for the little arrows next to the column name indicating the sort orders"
 
-  [id {sc :sort-columns}]
-  [:img {:style {:margin-left :8px}
-         :src (cond
-                (= id (-> sc first  first)) (if (-> sc first  second) "/img/sort_asc.png"     "/img/sort_desc.png")
-                (= id (-> sc second first)) (if (-> sc second second) "/img/sort_asc_2nd.png" "/img/sort_desc_2nd.png")
-                :otherwise "/img/sort_both.png")}])
+  [id {sc :sort-columns} sort-image-base]
+
+  (letfn [(h [url] (str sort-image-base url))]
+
+    [:img {:style {:margin-left :8px}
+           :src (cond
+                  (= id (-> sc first  first)) (if (-> sc first  second) (h "sort_asc.png")     (h "sort_desc.png"))
+                  (= id (-> sc second first)) (if (-> sc second second) (h "sort_asc_2nd.png") (h "sort_desc_2nd.png"))
+                  :otherwise (h "sort_both.png"))}]))
 
 (defn- update-sort-columns
 
@@ -71,6 +74,7 @@
 
    `:filter-string`      - A string to pre-populate the filter input
    `:sort-columns`       - A seq of `[col-id reverse-order?]` pairs which can specify the inital filtering
+   `:sort-image-base`      - Where to find the files `sort_asc.png` &c. Default is `/img/`
 
    `:table-id`           - The value to use as the HTML `id` attribute for the table.  Must be unique if there are multiple tables shown
    `:table-class`        - The value used for the `class` attribute of the table
@@ -81,10 +85,11 @@
                               This is useful if some other part of your app needs to know about the sorting/filtering (saving user prefs, etc)"
 
 
-  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id no-data-label]
+  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id no-data-label sort-image-base]
                  :or {table-class "table table-striped table-bordered"
                       table-id    ""
-                      no-data-label nil}}]
+                      no-data-label nil
+                      sort-image-base "/img/"}}]
 
   (let [table-state (reagent/atom {:filter-string (or filter-string "")
                                    :sort-columns (or sort-columns
@@ -121,7 +126,7 @@
 
                 [:th {:style {:cursor "pointer"}
                       :on-click #(update-sort! col-id table-state)}
-                 title [sort-indicator col-id @table-state]]
+                 title [sort-indicator col-id @table-state sort-image-base]]
 
                 [:th title])
               {:key [col-id table-id]})))]

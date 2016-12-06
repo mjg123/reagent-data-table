@@ -4,8 +4,6 @@
 
 (enable-console-print!)
 
-(println "HELLO")
-
 (def data1
   [{:id 1 :name "Alice"   :age 23}
    {:id 2 :name "Bob"     :age 28}
@@ -26,8 +24,8 @@
   [:div
 
    [:h2 "Data"]
-   [:input {:type "Button" :value "Dataset #1" :on-click #(swap! app-state assoc :table-data data1)}]
-   [:input {:type "Button" :value "Dataset #2" :on-click #(swap! app-state assoc :table-data data2)}]
+   [:input {:type "Button" :default-value "Dataset #1" :on-click #(swap! app-state assoc :table-data data1)}]
+   [:input {:type "Button" :default-value "Dataset #2" :on-click #(swap! app-state assoc :table-data data2)}]
 
    [:h2 "A very plain table"]
    [:div.table-container
@@ -42,11 +40,16 @@
                      :headers [[:id "ID"] [:name "Name"] [:age "Age"]]
                      :rows    (:table-data @app-state)
 
+                     :td-anchor-attributes-fn (fn [row col-id]
+                                                (when (and (= :name col-id)
+                                                           (even? (:id row)))
+                                                  {:href (str "http://example.com/people/" (:name row))}))
+
                      :no-data-label [:span.info "~~unknowable~~"]
 
                      :filterable-columns [:age :name]
                      :filter-label "Search by age or name:"
-                     :filter-string "e"
+                     :filter-string "a"
 
                      :sortable-columns [:id :name :age]
                      :sort-columns [[:age true]]

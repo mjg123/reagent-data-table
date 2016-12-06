@@ -68,6 +68,9 @@
    `:headers`            - A seq of `[col-id text]` where `col-id` is the key looked up in the row-maps, and `text` is the column heading
    `:rows`               - A seq of maps which make provide the table's data
 
+   `:td-anchor-attributes-fn` - A fn of two args, row and col-id which returns a map like {:href \"/foo?bar\"} so that
+                                cells can be links. Return nil for no link
+
    `:sortable-columns`   - A seq of `col-id` which dictates which columns will be sortable
    `:filterable-columns` - A seq of `col-id` which dictates which columns will be filterable
    `:filter-label`       - A string used as a label for the filter input. Defaults to: \"Filter by: <col-1-name>, <col-2-name>...\"
@@ -102,7 +105,7 @@
 
 
 
-    (fn [{:keys [headers rows sortable-columns filterable-columns filter-string sort-columns filter-label]
+    (fn [{:keys [headers rows sortable-columns filterable-columns filter-string sort-columns filter-label td-anchor-attributes-fn]
           :or {filterable-columns []
                sortable-columns []}}]
 
@@ -141,6 +144,12 @@
             [:tr
              (for [[k _] headers]
                ^{:key [row k table-id]}
-               [:td (if (empty? (str (get row k)))
-                      no-data-label
-                      (get row k))])]))]]])))
+               [:td
+                (let [td-content (if (empty? (str (get row k)))
+                                   no-data-label
+                                   (get row k))
+                      anchor-attributes (and td-anchor-attributes-fn (td-anchor-attributes-fn row k))]
+
+                  (if anchor-attributes
+                    [:a (update anchor-attributes :style merge {:display :block}) td-content]
+                    td-content))])]))]]])))

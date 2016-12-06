@@ -5,4 +5,4 @@
 #5 lein cljsbuild once demo
 #6 git add resources/public/js/compiled/reagent_data_table.js
 #7 git commit -m "updated for latest master"
-#8 git push origin gh-pages:gh-pages 
+#8 git push --force

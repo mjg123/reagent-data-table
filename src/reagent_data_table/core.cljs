@@ -2,14 +2,27 @@
   (:require [reagent.core   :as reagent]
             [clojure.string :as s]))
 
+(defn- filter-tokens
+
+  "Splits a string of filter text into tokens"
+
+  [s]
+  (-> s
+      (s/split #"\s+")
+      (->>
+       (remove empty?))))
+
 (defn- filter-row
 
-  "Predicate fn for deciding whether to show a row when filtering is being applied"
+  "Predicate fn for deciding whether to show a row when filtering is being applied. All filters must match somewhere
+   in a row for it to be shown"
 
   [s filter-cols row-map]
-  (let [filterables ((apply juxt filter-cols) row-map)]
-        (some identity
-              (map #(s/index-of (s/upper-case (str %)) (s/upper-case (str s))) filterables))))
+  (every? identity                           ;; every filter must match
+        (for [filter (filter-tokens s)]
+          (some identity                     ;; some column
+                (for [col ((apply juxt filter-cols) row-map)]
+                  (s/index-of (s/upper-case (str col)) (s/upper-case (str filter))))))))
 
 (defn- sort-indicator
 

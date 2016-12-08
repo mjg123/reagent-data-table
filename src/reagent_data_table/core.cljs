@@ -94,16 +94,14 @@
    `:table-id`           - The value to use as the HTML `id` attribute for the table.  Must be unique if there are multiple tables shown
    `:table-class`        - The value used for the `class` attribute of the table
                            Defaults to `table table-striped table-bordered` which is OK for Bootstrap
-   `:no-data-label`      - In the case that a value is missing/nil/empty, show this text or component instead
 
    `:table-state-change-fn` - Optionally provide a one-arg fn which is called whenever the state of the table (sorting/filtering) changes
                               This is useful if some other part of your app needs to know about the sorting/filtering (saving user prefs, etc)"
 
 
-  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id no-data-label sort-image-base]
+  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base]
                  :or {table-class "table table-striped table-bordered"
                       table-id    ""
-                      no-data-label nil
                       sort-image-base "/img/"}}]
 
   (let [table-state (reagent/atom {:filter-string (or filter-string "")
@@ -121,9 +119,7 @@
           :or {filterable-columns []
                sortable-columns   []
                td-render-fn       (fn [row k]
-                                    (if (empty? (str (get row k)))
-                                      no-data-label
-                                      (get row k)))}}]
+                                    (get row k))}}]
 
       [:div
        (when (seq filterable-columns)
@@ -159,6 +155,7 @@
             ^{:key [row table-id]}
             [:tr
              (for [[k _] headers]
-               ^{:key [row k table-id]}
-               [:td
-                (td-render-fn row k)])]))]]])))
+               (let [cell (td-render-fn row k)]
+                 (if (and (vector? cell) (= :td (first cell)))
+                   cell
+                   ^{:key [row k table-id]} [:td cell])))]))]]])))

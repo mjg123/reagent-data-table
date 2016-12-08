@@ -42,9 +42,9 @@
 
                      :td-render-fn (fn [row col-id]
                                      (cond (and (= :name col-id)
-                                                (even? (:id row))) ^{:key (:id row)} [:td [:a {:href (str "http://example.com/pople/" (:name row))} (get row col-id)]]
+                                                (even? (:id row))) [:td [:a {:href (str "http://example.com/pople/" (:name row))} (get row col-id)]]
                                            :else (if (empty? (str (get row col-id)))
-                                                   ^{:key (:id row)} [:td {:style {:background :gold :display :block}} "~~unknowable~~"]
+                                                   [:td {:style {:background :gold :display :block}} "~~unknowable~~"]
                                                    (get row col-id))))
 
                      :filterable-columns [:age :name]

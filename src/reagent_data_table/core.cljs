@@ -81,7 +81,7 @@
    `:headers`            - A seq of `[col-id text]` where `col-id` is the key looked up in the row-maps, and `text` is the column heading
    `:rows`               - A seq of maps which make provide the table's data
 
-   `:td-render-fn`       - A fn of two args, row and col-id which returns the content of td tags
+   `:td-render-fn`       - A fn of two args, row and col-id which can return a reagent td element or just the content of it.
 
    `:sortable-columns`   - A seq of `col-id` which dictates which columns will be sortable
    `:filterable-columns` - A seq of `col-id` which dictates which columns will be filterable
@@ -155,7 +155,7 @@
             ^{:key [row table-id]}
             [:tr
              (for [[k _] headers]
-               (let [cell (td-render-fn row k)]
-                 (if (and (vector? cell) (= :td (first cell)))
-                   cell
-                   ^{:key [row k table-id]} [:td cell])))]))]]])))
+               (with-meta (let [cell (td-render-fn row k)]
+                            (if (and (vector? cell) (= :td (first cell)))
+                              cell
+                              [:td cell])) {:key [row k table-id]}))]))]]])))

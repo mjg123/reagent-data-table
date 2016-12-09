@@ -81,8 +81,7 @@
    `:headers`            - A seq of `[col-id text]` where `col-id` is the key looked up in the row-maps, and `text` is the column heading
    `:rows`               - A seq of maps which make provide the table's data
 
-   `:td-anchor-attributes-fn` - A fn of two args, row and col-id which returns a map like {:href \"/foo?bar\"} so that
-                                cells can be links. Return nil for no link
+   `:td-render-fn`       - A fn of two args, row and col-id which can return a reagent td element or just the content of it.
 
    `:sortable-columns`   - A seq of `col-id` which dictates which columns will be sortable
    `:filterable-columns` - A seq of `col-id` which dictates which columns will be filterable
@@ -95,16 +94,14 @@
    `:table-id`           - The value to use as the HTML `id` attribute for the table.  Must be unique if there are multiple tables shown
    `:table-class`        - The value used for the `class` attribute of the table
                            Defaults to `table table-striped table-bordered` which is OK for Bootstrap
-   `:no-data-label`      - In the case that a value is missing/nil/empty, show this text or component instead
 
    `:table-state-change-fn` - Optionally provide a one-arg fn which is called whenever the state of the table (sorting/filtering) changes
                               This is useful if some other part of your app needs to know about the sorting/filtering (saving user prefs, etc)"
 
 
-  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id no-data-label sort-image-base]
+  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base]
                  :or {table-class "table table-striped table-bordered"
                       table-id    ""
-                      no-data-label nil
                       sort-image-base "/img/"}}]
 
   (let [table-state (reagent/atom {:filter-string (or filter-string "")
@@ -118,9 +115,11 @@
 
 
 
-    (fn [{:keys [headers rows sortable-columns filterable-columns filter-string sort-columns filter-label td-anchor-attributes-fn]
+    (fn [{:keys [headers rows sortable-columns filterable-columns filter-string sort-columns filter-label td-render-fn]
           :or {filterable-columns []
-               sortable-columns []}}]
+               sortable-columns   []
+               td-render-fn       (fn [row k]
+                                    (get row k))}}]
 
       [:div
        (when (seq filterable-columns)
@@ -156,13 +155,7 @@
             ^{:key [row table-id]}
             [:tr
              (for [[k _] headers]
-               ^{:key [row k table-id]}
-               [:td
-                (let [td-content (if (empty? (str (get row k)))
-                                   no-data-label
-                                   (get row k))
-                      anchor-attributes (and td-anchor-attributes-fn (td-anchor-attributes-fn row k))]
-
-                  (if anchor-attributes
-                    [:a (update anchor-attributes :style merge {:display :block}) td-content]
-                    td-content))])]))]]])))
+               (with-meta (let [cell (td-render-fn row k)]
+                            (if (and (vector? cell) (= :td (first cell)))
+                              cell
+                              [:td cell])) {:key [row k table-id]}))]))]]])))

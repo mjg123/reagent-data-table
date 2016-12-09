@@ -40,12 +40,12 @@
                      :headers [[:id "ID"] [:name "Name"] [:age "Age"]]
                      :rows    (:table-data @app-state)
 
-                     :td-anchor-attributes-fn (fn [row col-id]
-                                                (when (and (= :name col-id)
-                                                           (even? (:id row)))
-                                                  {:href (str "http://example.com/people/" (:name row))}))
-
-                     :no-data-label [:span.info "~~unknowable~~"]
+                     :td-render-fn (fn [row col-id]
+                                     (cond (and (= :name col-id)
+                                                (even? (:id row))) [:td [:a {:href (str "http://example.com/pople/" (:name row))} (get row col-id)]]
+                                           :else (if (empty? (str (get row col-id)))
+                                                   [:td {:style {:background :gold :display :block}} "~~unknowable~~"]
+                                                   (get row col-id))))
 
                      :filterable-columns [:age :name]
                      :filter-label "Search by age or name:"

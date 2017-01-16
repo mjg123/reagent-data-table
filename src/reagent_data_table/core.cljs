@@ -1,5 +1,5 @@
 (ns reagent-data-table.core
-  (:require [reagent.core   :as reagent]
+  (:require [reagent.core :as reagent]
             [clojure.string :as s]))
 
 (defn- filter-tokens
@@ -18,11 +18,11 @@
    in a row for it to be shown"
 
   [s filter-cols row-map]
-  (every? identity                           ;; every filter must match
-        (for [filter (filter-tokens s)]
-          (some identity                     ;; some column
-                (for [col ((apply juxt filter-cols) row-map)]
-                  (s/index-of (s/upper-case (str col)) (s/upper-case (str filter))))))))
+  (every? identity                                          ;; every filter must match
+          (for [filter (filter-tokens s)]
+            (some identity                                  ;; some column
+                  (for [col ((apply juxt filter-cols) row-map)]
+                    (s/index-of (s/upper-case (str col)) (s/upper-case (str filter))))))))
 
 (defn- sort-indicator
 
@@ -33,10 +33,10 @@
   (letfn [(h [url] (str sort-image-base url))]
 
     [:img {:style {:margin-left :8px}
-           :src (cond
-                  (= id (-> sc first  first)) (if (-> sc first  second) (h "sort_asc.png")     (h "sort_desc.png"))
-                  (= id (-> sc second first)) (if (-> sc second second) (h "sort_asc_2nd.png") (h "sort_desc_2nd.png"))
-                  :otherwise (h "sort_both.png"))}]))
+           :src   (cond
+                    (= id (-> sc first first)) (if (-> sc first second) (h "sort_asc.png") (h "sort_desc.png"))
+                    (= id (-> sc second first)) (if (-> sc second second) (h "sort_asc_2nd.png") (h "sort_desc_2nd.png"))
+                    :otherwise (h "sort_both.png"))}]))
 
 (defn- update-sort-columns
 
@@ -70,6 +70,95 @@
           rows
           (reverse sort-columns)))
 
+(defn- row-expanded?
+  [table-state row-data table-id]
+  (get-in @table-state [:child-rows [row-data table-id] :expanded?]))
+
+(defn- toggle-child-row-fn
+  "Returns a fn that toggles `:expanded?` for a specific row.
+   fn will return args so that it may be composed with a pre-existing on-click handler"
+  [table-state row-data table-id]
+  (fn [& args]
+    (swap! table-state update-in [:child-rows [row-data table-id] :expanded?] not)
+    args))
+
+(defn expand-button
+  [{:keys [expanded-class collapsed-class] :or {expanded-class "expanded" collapsed-class "collapsed"}}
+   table-state row-data table-id]
+  (with-meta [:td {:class    (if (row-expanded? table-state row-data table-id)
+                               expanded-class collapsed-class)
+                   :on-click (toggle-child-row-fn table-state row-data table-id)}]
+             {:key [row-data "expand-button" table-id]}))
+
+(defn add-expand-button
+  [{:keys [expand-button-alignment] :or {expand-button-alignment :right} :as child-row-opts}
+   tr table-state row-data table-id]
+  (let [expand-button (expand-button child-row-opts table-state row-data table-id)]
+    (if (= :left expand-button-alignment)
+      (with-meta (into [(first tr) expand-button] (rest tr)) (meta tr))
+      (conj tr expand-button))))
+
+(defn render-child-row
+  [{:keys [child-row-render-fn expanded-class collapsed-class] :or {expanded-class "expanded" collapsed-class "collapsed"}}
+   table-state row-data table-id]
+  (with-meta
+    [:tr {:class (if (row-expanded? table-state row-data table-id) expanded-class collapsed-class)}
+     (child-row-render-fn row-data)]
+    {:key [row-data "child-row" table-id]}))
+
+(defn- row-with-child-row
+  [{:keys [child-row-render-fn] :as child-row-opts} table-id table-state tr row-data]
+  (let [child-row (render-child-row child-row-opts table-state row-data table-id)]
+    [(add-expand-button child-row-opts tr table-state row-data table-id) child-row]))
+
+(defn render-td
+  [td-render-fn table-id headers row k]
+  (with-meta (let [cell (td-render-fn row k)]
+               (if (and (vector? cell) (= :td (first cell)))
+                 cell
+                 [:td cell]))
+             {:key [row k table-id]}))
+
+(defn render-thead
+  [{:keys [child-row-opts headers sortable-columns sort-image-base table-id]} table-state]
+  [:thead>tr
+   (let [headers (if child-row-opts
+                   (if (= :left (:expand-button-alignment child-row-opts))
+                     (into [["expand-buttons" ""]] headers)
+                     (conj headers ["expand-buttons" ""]))
+                   headers)]   ;; Add extra column for expand button if there are child rows
+     (doall
+      (for [[col-id title] headers]
+        (with-meta
+          (if (some #{col-id} sortable-columns)
+
+            [:th {:style    {:cursor "pointer"}
+                  :on-click #(update-sort! col-id table-state)}
+             title [sort-indicator col-id @table-state sort-image-base]]
+
+            [:th title])
+          {:key [col-id table-id]}))))])
+
+(defn render-tbody
+  [{:keys [headers rows filterable-columns td-render-fn table-id child-row-opts]
+    :or   {td-render-fn (fn [row k]
+                          (get row k))}}
+   table-state]
+  [:tbody
+   (doall
+    (->>
+     (for [row (cond->> rows
+                 (seq filterable-columns) (filter #(filter-row (:filter-string @table-state) filterable-columns %))
+                 (:sort-columns @table-state) (do-sort (:sort-columns @table-state)))]
+       (let [tr (with-meta (into [:tr]
+                                 (for [[k _] headers]
+                                   (render-td td-render-fn table-id headers row k)))
+                  {:key [row table-id]})]
+         (if (:child-row-render-fn child-row-opts)
+           (row-with-child-row child-row-opts table-id table-state tr row)
+           [tr])))
+     (mapcat identity)))])
+
 (defn data-table
 
   "Reagent component for a sortable/filterable table.
@@ -82,6 +171,14 @@
    `:rows`               - A seq of maps which make provide the table's data
 
    `:td-render-fn`       - A fn of two args, row and col-id which can return a reagent td element or just the content of it.
+   `:child-row-render-fn`- A fn of one arg, a row which, if supplied, can be used to emit a child row after
+   `:child-row-opts`     - A map with keys:
+       `:child-row-render-fn`     - A fn of one arg, a row which, if supplied, can be used to emit a child row after each row.
+                                  - The top level element should be a valid child of `<tr>` i.e `<th>` or `<td>`
+                                  - fn should return falsey if a child row shouldn't be rendered this row
+       `:expand-button-alignment` - `:left` or `:right` (default: `:right`)
+       `:expanded-class`      - (optional) The CSS class to assign to expanded rows. Defaults to \"expanded\"
+       `:collapsed-class`     - (optional) The CSS class to assign to collapsed rows. Defaults to \"collapsed\"
 
    `:sortable-columns`   - A seq of `col-id` which dictates which columns will be sortable
    `:filterable-columns` - A seq of `col-id` which dictates which columns will be filterable
@@ -89,7 +186,7 @@
 
    `:filter-string`      - A string to pre-populate the filter input
    `:sort-columns`       - A seq of `[col-id reverse-order?]` pairs which can specify the inital filtering
-   `:sort-image-base`      - Where to find the files `sort_asc.png` &c. Default is `/img/`
+   `:sort-image-base`    - Where to find the files `sort_asc.png` &c. Default is `/img/`
 
    `:table-id`           - The value to use as the HTML `id` attribute for the table.  Must be unique if there are multiple tables shown
    `:table-class`        - The value used for the `class` attribute of the table
@@ -99,63 +196,31 @@
                               This is useful if some other part of your app needs to know about the sorting/filtering (saving user prefs, etc)"
 
 
-  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base]
-                 :or {table-class "table table-striped table-bordered"
-                      table-id    ""
-                      sort-image-base "/img/"}}]
+  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base child-row-opts]
+    :or   {table-class     "table table-striped table-bordered"
+           table-id        ""
+           sort-image-base "/img/"}}]
 
   (let [table-state (reagent/atom {:filter-string (or filter-string "")
-                                   :sort-columns (or sort-columns
-                                                     (map (fn [col] [col false]) sortable-columns))})]
+                                   :sort-columns  (or sort-columns
+                                                      (map (fn [col] [col false]) sortable-columns))})]
 
     (when table-state-change-fn
       (add-watch table-state :blah
                  (fn [_ _ _ new]
                    (table-state-change-fn new))))
 
-
-
-    (fn [{:keys [headers rows sortable-columns filterable-columns filter-string sort-columns filter-label td-render-fn]
-          :or {filterable-columns []
-               sortable-columns   []
-               td-render-fn       (fn [row k]
-                                    (get row k))}}]
-
+    (fn [{:keys [headers filterable-columns filter-label] :as opts}]
       [:div
        (when (seq filterable-columns)
          [:label (or filter-label
                      (str "Filter by " (s/join ", " (map (into {} headers) filterable-columns)) ":"))
-          [:input {:style {:margin-left :8px}
+          [:input {:style         {:margin-left :8px}
                    :default-value (:filter-string @table-state)
-                   :on-change #(swap! table-state assoc :filter-string (-> % .-target .-value))}]])
+                   :on-change     #(swap! table-state assoc :filter-string (-> % .-target .-value))}]])
 
        [:table
         {:id table-id :class table-class :cell-spacing "0" :width "100%"}
 
-        [:thead>tr
-         (doall
-          (for [[col-id title] headers]
-
-            (with-meta
-              (if (some #{col-id} sortable-columns)
-
-                [:th {:style {:cursor "pointer"}
-                      :on-click #(update-sort! col-id table-state)}
-                 title [sort-indicator col-id @table-state sort-image-base]]
-
-                [:th title])
-              {:key [col-id table-id]})))]
-
-        [:tbody
-         (doall
-          (for [row (cond->> rows
-                      (seq filterable-columns)      (filter #(filter-row (:filter-string @table-state) filterable-columns %))
-                      (:sort-columns @table-state)  (do-sort (:sort-columns @table-state)))]
-
-            ^{:key [row table-id]}
-            [:tr
-             (for [[k _] headers]
-               (with-meta (let [cell (td-render-fn row k)]
-                            (if (and (vector? cell) (= :td (first cell)))
-                              cell
-                              [:td cell])) {:key [row k table-id]}))]))]]])))
+        (render-thead opts table-state)
+        (render-tbody opts table-state)]])))

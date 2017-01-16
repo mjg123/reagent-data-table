@@ -1,4 +1,4 @@
-(defproject reagent-data-table "2.0.0"
+(defproject reagent-data-table "2.1.0"
   :description "Sortable/filterable tables for reagent people"
   :url "http://github.com/mjg123/reagent-data-table"
   :license {:name "Apache License Version 2.0"

@@ -83,7 +83,6 @@
                      :child-row-opts        (-> @app :table-data :child-rows)
                      :sortable-columns      [:id :name :age]
                      :sort-columns          [[:age true]]
-                     :sort-image-base       "img/"
                      :table-state-change-fn #(.log js/console %)}]]])
 
 (r/render-component [page app-state]

@@ -211,16 +211,17 @@
                    (table-state-change-fn new))))
 
     (fn [{:keys [headers filterable-columns filter-label] :as opts}]
-      [:div
-       (when (seq filterable-columns)
-         [:label (or filter-label
-                     (str "Filter by " (s/join ", " (map (into {} headers) filterable-columns)) ":"))
-          [:input {:style         {:margin-left :8px}
-                   :default-value (:filter-string @table-state)
-                   :on-change     #(swap! table-state assoc :filter-string (-> % .-target .-value))}]])
+      (let [opts-with-defaults (merge opts {:sort-image-base sort-image-base})]
+        [:div
+         (when (seq filterable-columns)
+           [:label (or filter-label
+                       (str "Filter by " (s/join ", " (map (into {} headers) filterable-columns)) ":"))
+            [:input {:style         {:margin-left :8px}
+                     :default-value (:filter-string @table-state)
+                     :on-change     #(swap! table-state assoc :filter-string (-> % .-target .-value))}]])
 
-       [:table
-        {:id table-id :class table-class :cell-spacing "0" :width "100%"}
+         [:table
+          {:id table-id :class table-class :cell-spacing "0" :width "100%"}
 
-        (render-thead opts table-state)
-        (render-tbody opts table-state)]])))
+          (render-thead opts-with-defaults table-state)
+          (render-tbody opts-with-defaults table-state)]]))))

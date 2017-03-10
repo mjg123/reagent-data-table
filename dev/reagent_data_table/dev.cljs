@@ -27,6 +27,7 @@
                                (for [[k v] (:info row)]
                                  ^{:key (str row "-info-" (name k))}
                                  [:tr [:td (name k)] [:td v]])]]]))
+   :expand-on-click  (fn [row expanding] (.log js/console (str (:name row) " is " (if expanding "expanding" "collapsing"))))
    :expand-button-alignment :left})
 
 (defn- toggle-child-rows

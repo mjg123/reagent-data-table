@@ -77,17 +77,19 @@
 (defn- toggle-child-row-fn
   "Returns a fn that toggles `:expanded?` for a specific row.
    fn will return args so that it may be composed with a pre-existing on-click handler"
-  [table-state row-data table-id]
+  [table-state row-data table-id expand-on-click]
   (fn [& args]
     (swap! table-state update-in [:child-rows [row-data table-id] :expanded?] not)
+    (let [expanding? (get-in @table-state [:child-rows [row-data table-id] :expanded?])]
+      (expand-on-click row-data expanding?))
     args))
 
 (defn expand-button
-  [{:keys [expanded-class collapsed-class] :or {expanded-class "expanded" collapsed-class "collapsed"}}
+  [{:keys [expanded-class collapsed-class expand-on-click] :or {expanded-class "expanded" collapsed-class "collapsed" expand-on-click (constantly nil)}}
    table-state row-data table-id]
   (with-meta [:td {:class    (if (row-expanded? table-state row-data table-id)
                                expanded-class collapsed-class)
-                   :on-click (toggle-child-row-fn table-state row-data table-id)}]
+                   :on-click (toggle-child-row-fn table-state row-data table-id expand-on-click)}]
              {:key [row-data "expand-button" table-id]}))
 
 (defn add-expand-button
@@ -179,6 +181,9 @@
        `:expand-button-alignment` - `:left` or `:right` (default: `:right`)
        `:expanded-class`      - (optional) The CSS class to assign to expanded rows. Defaults to \"expanded\"
        `:collapsed-class`     - (optional) The CSS class to assign to collapsed rows. Defaults to \"collapsed\"
+       `:expand-on-click`     - (optional) A fn which takes row-data and a boolean parameter which reports if the child row is expanded.
+                                This function is invoked on the on-click of the child-row's expand button.
+                                It can be used to generate side-effects on the expanding/collapsing action for a child row.
 
    `:sortable-columns`   - A seq of `col-id` which dictates which columns will be sortable
    `:filterable-columns` - A seq of `col-id` which dictates which columns will be filterable

@@ -196,14 +196,16 @@
    `:table-id`           - The value to use as the HTML `id` attribute for the table.  Must be unique if there are multiple tables shown
    `:table-class`        - The value used for the `class` attribute of the table
                            Defaults to `table table-striped table-bordered` which is OK for Bootstrap
+   `:sf-input-id`        - The value to use as the HTML `id` attribute for the search input field. Default to `dt-sf-input`
 
    `:table-state-change-fn` - Optionally provide a one-arg fn which is called whenever the state of the table (sorting/filtering) changes
                               This is useful if some other part of your app needs to know about the sorting/filtering (saving user prefs, etc)"
 
 
-  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base child-row-opts]
+  [{:keys [sortable-columns filter-string sort-columns table-state-change-fn table-class table-id sort-image-base child-row-opts sf-input-id]
     :or   {table-class     "table table-striped table-bordered"
            table-id        ""
+           sf-input-id     "dt-sf-input"
            sort-image-base "/img/"}}]
 
   (let [table-state (reagent/atom {:filter-string (or filter-string "")
@@ -221,7 +223,8 @@
          (when (seq filterable-columns)
            [:label (or filter-label
                        (str "Filter by " (s/join ", " (map (into {} headers) filterable-columns)) ":"))
-            [:input {:style         {:margin-left :8px}
+            [:input {:id sf-input-id
+                     :style         {:margin-left :8px}
                      :default-value (:filter-string @table-state)
                      :on-change     #(swap! table-state assoc :filter-string (-> % .-target .-value))}]])
 

@@ -69,6 +69,7 @@
    [:h2 "A snazzy table"]
    [:div.table-container
     [rdt/data-table {:table-id              "snazzy-table"
+                     :sf-input-id           "search-field"
                      :headers               [[:id "ID"] [:name "Name"] [:age "Age"]]
                      :rows                  (-> @app :table-data :data)
                      :td-render-fn          (fn [row col-id]
